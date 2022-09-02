@@ -1,8 +1,9 @@
 import json
+from datetime import datetime
 
 import uvicorn
 from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal, ResourceDesc
+from cerbos.sdk.model import Principal, ResourceDesc, ResourceList, Resource
 from cerbos_sqlalchemy import get_query
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -34,7 +35,7 @@ def get_principal(credentials: HTTPBasicCredentials = Depends(security)) -> Prin
                 detail="User not found",
             )
 
-    return Principal(username, roles=[user.role], attr=dict(user._mapping))
+    return Principal(user.id, roles=[user.role], attr=dict(user._mapping))
 
 
 @app.get("/contacts")
@@ -50,16 +51,18 @@ async def get_contacts(p: Principal = Depends(get_principal)):
         plan,
         Contact,
         {
-            "request.resource.attr.ownerId": User.username,
+            "request.resource.attr.owner_id": User.id,
             "request.resource.attr.department": User.department,
-            "request.resource.attr.active": Contact.is_active,
-            "request.resource.attr.marketingOptIn": Contact.marketing_opt_in,
+            "request.resource.attr.is_active": Contact.is_active,
+            "request.resource.attr.marketing_opt_in": Contact.marketing_opt_in,
         },
         [(Contact.owner_id, User.id)],
     )
+    print(query.compile(compile_kwargs={"literal_binds": True}))
 
     # Optionally reduce the returned columns (`with_only_columns` returns a new `select`)
     query = query.with_only_columns(
+        Contact.id,
         Contact.first_name,
         Contact.last_name,
         Contact.is_active,
@@ -70,6 +73,35 @@ async def get_contacts(p: Principal = Depends(get_principal)):
         rows = s.execute(query).fetchall()
 
     return rows
+
+
+def convert_datetime_to_string(obj: any) -> any:
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
+
+
+@app.get("/contacts/{contact_id}")
+async def get_contact(contact_id: int, p: Principal = Depends(get_principal)):
+    with Session() as s:
+        contact = s.execute(select(Contact.__table__).where(Contact.id == contact_id)).fetchone()
+        if contact is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Contact not found",
+            )
+
+    r = Resource(
+        id=contact.id,
+        kind="contact",
+        attr={k: convert_datetime_to_string(v) for k, v in contact._mapping.items()},
+    )
+
+    with CerbosClient(host="http://localhost:3592") as c:
+        if not c.is_allowed("read", p, r):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized")
+
+    return contact
 
 
 if __name__ == "__main__":

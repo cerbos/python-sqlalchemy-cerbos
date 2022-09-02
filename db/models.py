@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy import (
     Boolean,
@@ -24,14 +25,25 @@ engine = create_engine(
 )
 
 
+_inc = 1
+def _get_str_inc():
+    global _inc
+    s = str(_inc)
+    _inc = _inc + 1
+    return s
+
+def _reset_inc():
+    global _inc
+    _inc = 1
+
+
 class User(Base):
     __tablename__ = "user"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True, default=_get_str_inc)
     username = Column(String(255))
     email = Column(String(255))
     name = Column(String(255))
-    # contacts = relationship("Contact", lazy="joined")
     contacts = relationship("Contact", back_populates="owner")
     role = Column(String(255))
     department = Column(String(255))
@@ -40,26 +52,25 @@ class User(Base):
 class Company(Base):
     __tablename__ = "company"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True, default=_get_str_inc)
     created_at = Column(DateTime, default=datetime.utcnow())
     updated_at = Column(DateTime)
     name = Column(String(255))
     website = Column(String(255))
-    # contacts = relationship("Contact", lazy="joined")
     contacts = relationship("Contact", back_populates="company")
 
 
 class Contact(Base):
     __tablename__ = "contact"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True, default=_get_str_inc)
     created_at = Column(DateTime, default=datetime.now())
     updated_at = Column(DateTime)
     first_name = Column(String(255))
     last_name = Column(String(255))
-    owner_id = Column(Integer, ForeignKey("user.id"))
+    owner_id = Column(String, ForeignKey("user.id"))
     owner = relationship("User", back_populates="contacts", lazy="joined")
-    company_id = Column(Integer, ForeignKey("company.id"))
+    company_id = Column(String, ForeignKey("company.id"))
     company = relationship("Company", back_populates="contacts", lazy="joined")
     is_active = Column(Boolean, default=False)
     marketing_opt_in = Column(Boolean, default=False)
@@ -78,6 +89,7 @@ with Session() as s:
     capri_sun = Company(name="Capri Sun")
     s.add_all([coca_cola, legal_co, pepsi_co, capri_sun])
     s.commit()
+    _reset_inc()
 
     alice = User(
         name="Alice",
@@ -109,6 +121,7 @@ with Session() as s:
     )
     s.add_all([alice, john, sarah, geri])
     s.commit()
+    _reset_inc()
 
     s.add_all(
         [

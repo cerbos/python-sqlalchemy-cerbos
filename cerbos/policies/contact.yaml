@@ -33,11 +33,11 @@ resourcePolicy:
         match:
           all:
             of:
-              - expr: request.resource.attr.active == true
+              - expr: request.resource.attr.is_active == true
               - any:
                   of:
                     - expr: request.principal.attr.department == "Sales"
                     - all:
                         of:
                           - expr: request.principal.attr.department == "Marketing"
-                          - expr: request.resource.attr.marketingOptIn == true
+                          - expr: request.resource.attr.marketing_opt_in == true

@@ -1,15 +1,6 @@
 from datetime import datetime
-from uuid import uuid4
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    create_engine,
-)
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -26,11 +17,14 @@ engine = create_engine(
 
 
 _inc = 1
+
+
 def _get_str_inc():
     global _inc
     s = str(_inc)
     _inc = _inc + 1
     return s
+
 
 def _reset_inc():
     global _inc

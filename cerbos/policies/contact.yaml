@@ -8,7 +8,6 @@ resourcePolicy:
   rules:
     - actions: ["*"]
       effect: EFFECT_ALLOW
-      #effect: EFFECT_DENY
       roles:
         - admin
 

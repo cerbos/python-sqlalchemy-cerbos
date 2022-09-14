@@ -54,12 +54,12 @@ The [policy](./cerbos/policies/contact.yaml) expects one of two roles to be set 
 
 These roles are authorized as follows:
 
-| Action   | Role: Admin | Derived Role: Owner (User) | Role: User, deparment: `Sales` | Role: User, deparment: `Marketing`             |
-| -------- | ----------- | -------------------------- | ------------------------------ | ---------------------------------------------- |
-| `read`   | Y           | Y                          | if Contact is active           | if Contact is active and opted in to marketing |
-| `update` | Y           | Y                          |                                |                                                |
-| `delete` | Y           | Y                          |                                |                                                |
-| `create` | Y           |                            | Y                              |                                                |
+| Action   | Role: Admin | Derived Role: Owner (User) | Role: User, department: `Sales` | Role: User, department: `Marketing`             |
+| -------- | ----------- | -------------------------- | ------------------------------- | ----------------------------------------------- |
+| `read`   | Y           | Y                          | if Contact is active            | if Contact is active and opted in to marketing  |
+| `update` | Y           | Y                          |                                 |                                                 |
+| `delete` | Y           | Y                          |                                 |                                                 |
+| `create` | Y           |                            | Y                               |                                                 |
 
 ## Example Requests
 

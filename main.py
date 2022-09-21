@@ -58,7 +58,7 @@ def get_resource_from_contact(
 
 
 @app.get("/contacts")
-async def get_contacts(p: Principal = Depends(get_principal)):
+def get_contacts(p: Principal = Depends(get_principal)):
     with CerbosClient(host="http://localhost:3592") as c:
         rd = ResourceDesc("contact")
 
@@ -97,7 +97,7 @@ async def get_contacts(p: Principal = Depends(get_principal)):
 
 
 @app.get("/contacts/{contact_id}")
-async def get_contact(
+def get_contact(
     db_contact: Contact = Depends(get_db_contact), p: Principal = Depends(get_principal)
 ):
     r = get_resource_from_contact(db_contact)
@@ -112,7 +112,7 @@ async def get_contact(
 
 
 @app.post("/contacts/new")
-async def create_contact(
+def create_contact(
     contact_schema: ContactSchema, p: Principal = Depends(get_principal)
 ):
     with CerbosClient(host="http://localhost:3592") as c:
@@ -138,7 +138,7 @@ async def create_contact(
 
 
 @app.put("/contacts/{contact_id}")
-async def update_contact(
+def update_contact(
     contact_schema: ContactSchema,
     db_contact: Contact = Depends(get_db_contact),
     p: Principal = Depends(get_principal),
@@ -163,7 +163,7 @@ async def update_contact(
 
 
 @app.delete("/contacts/{contact_id}")
-async def delete_contact(
+def delete_contact(
     r: Resource = Depends(get_resource_from_contact),
     p: Principal = Depends(get_principal),
 ):

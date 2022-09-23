@@ -20,13 +20,13 @@ cd cerbos
 
 ```bash
 # from project root
-./pw install
+pdm run install
 ```
 
 3. Start the FastAPI dev server
 
 ```bash
-./pw demo
+pdm run demo
 ```
 
 ## Sample data

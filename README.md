@@ -5,6 +5,7 @@ An example application of integrating [Cerbos](https://cerbos.dev) with a [FastA
 ## Dependencies
 
 - Python 3.10
+- SQLAlchemy >= 1.4 / 2.0
 - Docker for running the [Cerbos Policy Decision Point (PDP)](https://docs.cerbos.dev/cerbos/latest/installation/container.html)
 
 ## Getting Started

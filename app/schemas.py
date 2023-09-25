@@ -4,8 +4,8 @@ from pydantic import BaseModel
 class ContactSchema(BaseModel):
     first_name: str
     last_name: str
-    owner_id: str
-    company_id: str
+    owner_id: str = ""
+    company_id: str = ""
     is_active: bool = False
     marketing_opt_in: bool = False
 

@@ -1,10 +1,12 @@
+import datetime
+
 import uvicorn
-from cerbos.sdk.client import CerbosClient
-from cerbos.sdk.model import Principal, Resource, ResourceDesc
+from cerbos.engine.v1.engine_pb2 import PlanResourcesInput, Principal, Resource
+from cerbos.sdk.grpc.client import CerbosClient
 from cerbos_sqlalchemy import get_query
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from google.protobuf import struct_pb2
 from sqlalchemy import delete, select
 
 from app.models import Contact, Session, User
@@ -14,12 +16,26 @@ app = FastAPI()
 security = HTTPBasic()
 
 
+def get_value(v):
+    if isinstance(v, str):
+        return struct_pb2.Value(string_value=v)
+    elif isinstance(v, bool):
+        return struct_pb2.Value(bool_value=v)
+    elif isinstance(v, (int, float)):
+        return struct_pb2.Value(number_value=v)
+    elif isinstance(v, datetime.datetime):
+        return struct_pb2.Value(number_value=v.timestamp())
+    return struct_pb2.Value(null_value=v)
+
+
 # Stored users:
-#   "alice": "admin",
-#   "john": "user",
-#   "sarah": "user",
-#   "geri": "user",
-def get_principal(credentials: HTTPBasicCredentials = Depends(security)) -> Principal:
+#   "alice": "admin"
+#   "john": "user"
+#   "sarah": "user"
+#   "geri": "user"
+def get_principal(
+    credentials: HTTPBasicCredentials = Depends(security),
+) -> Principal:
     username = credentials.username
 
     with Session() as s:
@@ -31,7 +47,11 @@ def get_principal(credentials: HTTPBasicCredentials = Depends(security)) -> Prin
                 detail="User not found",
             )
 
-    return Principal(user.id, roles={user.role}, attr={"department": user.department})
+    return Principal(
+        id=str(user.id),
+        roles={str(user.role)},
+        attr={"department": get_value(user.department)},
+    )
 
 
 def get_db_contact(contact_id: str) -> Contact:
@@ -49,21 +69,21 @@ def get_resource_from_contact(
     db_contact: Contact = Depends(get_db_contact),
 ) -> Resource:
     return Resource(
-        id=db_contact.id,
+        id=str(db_contact.id),
         kind="contact",
-        attr=jsonable_encoder(
-            {n.name: getattr(db_contact, n.name) for n in Contact.__table__.c}
-        ),
+        attr={
+            n.name: get_value(getattr(db_contact, n.name)) for n in Contact.__table__.c
+        },
     )
 
 
 @app.get("/contacts")
-def get_contacts(p: Principal = Depends(get_principal)):
-    with CerbosClient(host="http://localhost:3592") as c:
-        rd = ResourceDesc("contact")
+async def get_contacts(p: Principal = Depends(get_principal)) -> list[ContactSchema]:
+    with CerbosClient("localhost:3593") as c:
+        pr = PlanResourcesInput.Resource(kind="contact")
 
         # Get the query plan for "read" action
-        plan = c.plan_resources("read", p, rd)
+        plan = c.plan_resources("read", p, pr)
         # print(json.dumps(plan.to_dict(), sort_keys=False, indent=4))
 
     query = get_query(
@@ -93,17 +113,19 @@ def get_contacts(p: Principal = Depends(get_principal)):
     with Session() as s:
         rows = s.execute(query).fetchall()
 
-    return rows
+    return rows  # type: ignore
 
 
 @app.get("/contacts/{contact_id}")
-def get_contact(
+async def get_contact(
     db_contact: Contact = Depends(get_db_contact), p: Principal = Depends(get_principal)
-):
+) -> ContactSchema:
     r = get_resource_from_contact(db_contact)
 
-    with CerbosClient(host="http://localhost:3592") as c:
-        if not c.is_allowed("read", p, r):
+    with CerbosClient("localhost:3593") as c:
+        resp = c.is_allowed("read", p, r)
+        if not resp:
+            # if not c.is_allowed("read", p, r):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized"
             )
@@ -112,10 +134,10 @@ def get_contact(
 
 
 @app.post("/contacts/new")
-def create_contact(
+async def create_contact(
     contact_schema: ContactSchema, p: Principal = Depends(get_principal)
-):
-    with CerbosClient(host="http://localhost:3592") as c:
+) -> dict[str, str | ContactSchema]:
+    with CerbosClient("localhost:3593") as c:
         if not c.is_allowed(
             "create",
             p,
@@ -128,24 +150,24 @@ def create_contact(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized"
             )
 
-    db_contact = Contact(**contact_schema.dict())
+    db_contact = Contact(**contact_schema.model_dump())
     with Session() as s:
         s.add(db_contact)
         s.commit()
         s.refresh(db_contact)
 
-    return {"result": "Created contact", "contact": db_contact}
+    return {"id": db_contact.id, "contact": db_contact}
 
 
 @app.put("/contacts/{contact_id}")
-def update_contact(
+async def update_contact(
     contact_schema: ContactSchema,
     db_contact: Contact = Depends(get_db_contact),
     p: Principal = Depends(get_principal),
-):
+) -> ContactSchema:
     r = get_resource_from_contact(db_contact)
 
-    with CerbosClient(host="http://localhost:3592") as c:
+    with CerbosClient("localhost:3593") as c:
         if not c.is_allowed("update", p, r):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized"
@@ -159,16 +181,15 @@ def update_contact(
         s.commit()
         s.refresh(db_contact)
 
-    return {"result": "Updated contact", "contact": db_contact}
+    return db_contact
 
 
 @app.delete("/contacts/{contact_id}")
-def delete_contact(
+async def delete_contact(
     r: Resource = Depends(get_resource_from_contact),
     p: Principal = Depends(get_principal),
-):
-
-    with CerbosClient(host="http://localhost:3592") as c:
+) -> dict[str, str]:
+    with CerbosClient("localhost:3593") as c:
         if not c.is_allowed("delete", p, r):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Unauthorized"

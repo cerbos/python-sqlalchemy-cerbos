@@ -1,4 +1,5 @@
 import datetime
+from typing import Dict, List, Union
 
 import uvicorn
 from cerbos.engine.v1.engine_pb2 import PlanResourcesInput, Principal, Resource
@@ -78,7 +79,7 @@ def get_resource_from_contact(
 
 
 @app.get("/contacts")
-async def get_contacts(p: Principal = Depends(get_principal)) -> list[ContactSchema]:
+async def get_contacts(p: Principal = Depends(get_principal)) -> List[ContactSchema]:
     with CerbosClient("localhost:3593") as c:
         pr = PlanResourcesInput.Resource(kind="contact")
 
@@ -136,7 +137,7 @@ async def get_contact(
 @app.post("/contacts/new")
 async def create_contact(
     contact_schema: ContactSchema, p: Principal = Depends(get_principal)
-) -> dict[str, str | ContactSchema]:
+) -> Dict[str, Union[str, ContactSchema]]:
     with CerbosClient("localhost:3593") as c:
         if not c.is_allowed(
             "create",
@@ -188,7 +189,7 @@ async def update_contact(
 async def delete_contact(
     r: Resource = Depends(get_resource_from_contact),
     p: Principal = Depends(get_principal),
-) -> dict[str, str]:
+) -> Dict[str, str]:
     with CerbosClient("localhost:3593") as c:
         if not c.is_allowed("delete", p, r):
             raise HTTPException(

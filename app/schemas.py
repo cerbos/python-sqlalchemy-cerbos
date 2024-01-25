@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -17,7 +19,7 @@ class UserSchema(BaseModel):
     username: str
     email: str
     name: str
-    contacts: list[ContactSchema]
+    contacts: List[ContactSchema]
     role: str
     department: str
 
@@ -28,7 +30,7 @@ class UserSchema(BaseModel):
 class CompanySchema(BaseModel):
     name: str
     website: str
-    contacts: list[ContactSchema]
+    contacts: List[ContactSchema]
 
     class Config:
         orm_mode = True

@@ -6,11 +6,11 @@ authors = [
     {name = "\"Cerbos Developers\"", email = "\"help@cerbos.dev\""},
 ]
 dependencies = [
-    "cerbos>=0.10.1",
+    "cerbos>=0.10.4",
     "sqlalchemy>=2.0.21",
     "fastapi>=0.81.0",
     "uvicorn>=0.18.3",
-    "cerbos-sqlalchemy>=0.3.1",
+    "cerbos-sqlalchemy>=0.3.2",
     "pydantic>=2.3.0",
 ]
 requires-python = ">=3.8"

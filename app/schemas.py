@@ -12,7 +12,7 @@ class ContactSchema(BaseModel):
     marketing_opt_in: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserSchema(BaseModel):
@@ -24,7 +24,7 @@ class UserSchema(BaseModel):
     department: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CompanySchema(BaseModel):
@@ -33,4 +33,4 @@ class CompanySchema(BaseModel):
     contacts: List[ContactSchema]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
